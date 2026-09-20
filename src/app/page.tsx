@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GridStage from "@/components/GridStage";
 import Toolbar from "@/components/Toolbar";
 import {
+  buildBalancedGrid,
   emptyLeafIds,
   initialTree,
+  listLeafIds,
   removeLeaf,
   setPhoto,
   splitLeaf,
@@ -113,19 +115,50 @@ export default function Page() {
     const target = pending.current;
     pending.current = null;
 
-    // Determine which leaves receive photos, in order.
-    let nextTree = tree;
-    let assetIdx = 0;
-    if (target && target !== "bulk") {
-      nextTree = setPhoto(nextTree, target, newPhoto(assets[0].id));
-      assetIdx = 1;
+    const firstTarget = target && target !== "bulk" ? target : null;
+
+    // Fresh canvas (nothing placed yet) + several photos + no specific target:
+    // lay them out as a balanced grid.
+    const allEmpty =
+      emptyLeafIds(tree).length === listLeafIds(tree).length;
+    if (!firstTarget && allEmpty && assets.length > 1) {
+      let grid = buildBalancedGrid(assets.length);
+      listLeafIds(grid).forEach((id, i) => {
+        if (i < assets.length) grid = setPhoto(grid, id, newPhoto(assets[i].id));
+      });
+      commitAnd(grid);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
     }
-    // Fill remaining empty cells with any remaining photos.
-    const empties = emptyLeafIds(nextTree).filter((id) => id !== target);
-    for (const leafId of empties) {
-      if (assetIdx >= assets.length) break;
-      nextTree = setPhoto(nextTree, leafId, newPhoto(assets[assetIdx].id));
-      assetIdx += 1;
+
+    // Otherwise: fill the targeted cell + existing empties, then grow the
+    // layout (by splitting) so any remaining photos still get placed.
+    let nextTree = tree;
+    let idx = 0;
+    const used = new Set<string>();
+    if (firstTarget) {
+      nextTree = setPhoto(nextTree, firstTarget, newPhoto(assets[0].id));
+      used.add(firstTarget);
+      idx = 1;
+    }
+    for (const leafId of emptyLeafIds(nextTree)) {
+      if (idx >= assets.length) break;
+      if (used.has(leafId)) continue;
+      nextTree = setPhoto(nextTree, leafId, newPhoto(assets[idx].id));
+      used.add(leafId);
+      idx += 1;
+    }
+    let guard = 0;
+    while (idx < assets.length && guard++ < 400) {
+      const leaves = listLeafIds(nextTree);
+      const lastId = leaves[leaves.length - 1];
+      const before = new Set(leaves);
+      const dir = leaves.length % 2 === 0 ? "v" : "h";
+      nextTree = splitLeaf(nextTree, lastId, dir);
+      const newId = listLeafIds(nextTree).find((id) => !before.has(id));
+      if (!newId) break;
+      nextTree = setPhoto(nextTree, newId, newPhoto(assets[idx].id));
+      idx += 1;
     }
     commitAnd(nextTree);
     if (fileRef.current) fileRef.current.value = "";

@@ -22,6 +22,42 @@ export function initialTree(): LayoutNode {
   return newLeaf();
 }
 
+/**
+ * Build a near-square grid of `n` empty cells (rows of columns). Used when the
+ * user adds more photos at once than the current layout can hold.
+ */
+export function buildBalancedGrid(n: number): LayoutNode {
+  if (n <= 1) return newLeaf();
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const rowNodes: LayoutNode[] = [];
+  let remaining = n;
+  for (let r = 0; r < rows; r++) {
+    const count = Math.min(cols, remaining);
+    remaining -= count;
+    const leaves = Array.from({ length: count }, () => newLeaf());
+    if (count === 1) {
+      rowNodes.push(leaves[0]);
+    } else {
+      rowNodes.push({
+        type: "split",
+        id: uid("split"),
+        axis: "x",
+        children: leaves,
+        sizes: leaves.map(() => 1 / count),
+      });
+    }
+  }
+  if (rowNodes.length === 1) return rowNodes[0];
+  return {
+    type: "split",
+    id: uid("split"),
+    axis: "y",
+    children: rowNodes,
+    sizes: rowNodes.map(() => 1 / rowNodes.length),
+  };
+}
+
 export interface Canvas {
   w: number;
   h: number;
