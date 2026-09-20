@@ -5,6 +5,7 @@ import type { GridStyle, ImageStore, LayoutNode, Photo } from "@/lib/types";
 import {
   applySnap,
   computeGeometry,
+  resizeDivider,
   resizeRail,
   snapCandidates,
   type Canvas,
@@ -140,10 +141,11 @@ export default function GridStage({
     const threshold = 8 / (displayScale || 1);
     const { pos, snapped } = applySnap(raw, d.candidates, threshold);
     setSnapLine(snapped === null ? null : { axis: d.axis, pos: snapped });
-    const next = resizeRail(root, canvas, style, d.splitId, d.index, pos, {
-      shift: e.shiftKey,
-      minPx: 28,
-    });
+    const opts = { shift: e.shiftKey, minPx: 28 };
+    // Alt links the whole colinear rail; otherwise resize just this boundary.
+    const next = e.altKey
+      ? resizeRail(root, canvas, style, d.splitId, d.index, pos, opts)
+      : resizeDivider(root, canvas, style, d.splitId, d.index, pos, opts);
     onTreeChange(next);
   }
 
