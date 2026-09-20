@@ -58,8 +58,8 @@ export default function CellView({
   function onPointerDown(e: React.PointerEvent) {
     onSelect();
     if (e.button !== 0) return;
-    // Shift-drag on a photo picks the cell up to move/swap it with another.
-    if (e.shiftKey && asset && photo) {
+    // Shift-drag picks the cell up to move/swap it — works on empty cells too.
+    if (e.shiftKey) {
       e.stopPropagation();
       onStartMove();
       return;
@@ -174,6 +174,7 @@ export default function CellView({
         <button
           type="button"
           onClick={(e) => {
+            if (e.shiftKey) return; // shift is reserved for moving the cell
             e.stopPropagation();
             onRequestPhoto();
           }}

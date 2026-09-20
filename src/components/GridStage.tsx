@@ -26,6 +26,7 @@ interface Props {
   onRemove: (leafId: string) => void;
   onRequestPhoto: (leafId: string) => void;
   onMoveCell: (sourceId: string, targetId: string, side: DropSide) => void;
+  onMoveToCanvasEdge: (sourceId: string, side: DropSide) => void;
   onSwap: (aId: string, bId: string) => void;
   onDropFiles: (leafId: string | null, files: FileList) => void;
 }
@@ -51,6 +52,7 @@ export default function GridStage({
   onRemove,
   onRequestPhoto,
   onMoveCell,
+  onMoveToCanvasEdge,
   onSwap,
   onDropFiles,
 }: Props) {
@@ -62,10 +64,12 @@ export default function GridStage({
   );
   const drag = useRef<DragState | null>(null);
 
-  // Cell move (shift-drag on a photo): drop against an edge to insert/move,
-  // or in the center to swap the two cells.
+  // Cell move (shift-drag): drop against a cell edge to insert/move, in a cell
+  // center to swap, or at the canvas border for a full-span row/column.
   type DropMode = DropSide | "swap";
-  type MoveTarget = { id: string; mode: DropMode };
+  type MoveTarget =
+    | { kind: "cell"; id: string; mode: DropMode }
+    | { kind: "canvas"; side: DropSide };
   const [moveSourceId, setMoveSourceId] = useState<string | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
   const moveTargetRef = useRef<MoveTarget | null>(null);
@@ -162,6 +166,23 @@ export default function GridStage({
 
   function onMoveMove(e: PointerEvent) {
     const p = stagePoint(e);
+
+    // Canvas-border band first: full-span row/column at the very edge.
+    const band = Math.max(20, Math.min(canvas.w, canvas.h) * 0.035);
+    const dists: [DropSide, number][] = [
+      ["left", p.x],
+      ["right", canvas.w - p.x],
+      ["top", p.y],
+      ["bottom", canvas.h - p.y],
+    ];
+    dists.sort((a, b) => a[1] - b[1]);
+    if (dists[0][1] < band) {
+      const next = { kind: "canvas" as const, side: dists[0][0] };
+      moveTargetRef.current = next;
+      setMoveTarget(next);
+      return;
+    }
+
     const hit = cellsRef.current.find(
       (c) => p.x >= c.x && p.x <= c.x + c.w && p.y >= c.y && p.y <= c.y + c.h
     );
@@ -187,7 +208,7 @@ export default function GridStage({
           ? "bottom"
           : "top";
     }
-    const next = { id: hit.id, mode };
+    const next = { kind: "cell" as const, id: hit.id, mode };
     moveTargetRef.current = next;
     setMoveTarget(next);
   }
@@ -195,9 +216,12 @@ export default function GridStage({
   function endMove() {
     const src = moveSourceRef.current;
     const tgt = moveTargetRef.current;
-    if (src && tgt && src !== tgt.id) {
-      if (tgt.mode === "swap") onSwap(src, tgt.id);
-      else onMoveCell(src, tgt.id, tgt.mode);
+    if (src && tgt) {
+      if (tgt.kind === "canvas") onMoveToCanvasEdge(src, tgt.side);
+      else if (src !== tgt.id) {
+        if (tgt.mode === "swap") onSwap(src, tgt.id);
+        else onMoveCell(src, tgt.id, tgt.mode);
+      }
     }
     moveSourceRef.current = null;
     moveTargetRef.current = null;
@@ -276,7 +300,9 @@ export default function GridStage({
                 displayScale={displayScale}
                 selected={selectedId === cell.id}
                 isMoveSource={moveSourceId === cell.id}
-                isMoveTarget={moveTarget?.id === cell.id}
+                isMoveTarget={
+                  moveTarget?.kind === "cell" && moveTarget.id === cell.id
+                }
                 onSelect={() => onSelect(cell.id)}
                 onUpdatePhoto={(patch) => onUpdatePhoto(cell.id, patch)}
                 onSplit={(dir) => onSplit(cell.id, dir)}
@@ -308,9 +334,36 @@ export default function GridStage({
 
             {moveTarget &&
               (() => {
+                const t = Math.max(6, 10 / (displayScale || 1));
+
+                // Full-span indicator along a whole canvas border.
+                if (moveTarget.kind === "canvas") {
+                  const s = moveTarget.side;
+                  const tt = t * 1.4;
+                  const pos: React.CSSProperties =
+                    s === "left"
+                      ? { left: 0, top: 0, width: tt, height: canvas.h }
+                      : s === "right"
+                      ? { left: canvas.w - tt, top: 0, width: tt, height: canvas.h }
+                      : s === "top"
+                      ? { left: 0, top: 0, width: canvas.w, height: tt }
+                      : { left: 0, top: canvas.h - tt, width: canvas.w, height: tt };
+                  return (
+                    <div
+                      style={{
+                        position: "absolute",
+                        background: "#22d3ee",
+                        boxShadow: "0 0 18px rgba(34,211,238,0.9)",
+                        pointerEvents: "none",
+                        zIndex: 12,
+                        ...pos,
+                      }}
+                    />
+                  );
+                }
+
                 const c = geo.cells.find((x) => x.id === moveTarget.id);
                 if (!c) return null;
-                const t = Math.max(6, 10 / (displayScale || 1));
 
                 if (moveTarget.mode === "swap") {
                   const badge = Math.max(28, 44 / (displayScale || 1));

@@ -330,6 +330,49 @@ export function moveCell(
   return next;
 }
 
+/**
+ * Move `sourceId` to a full-span slot at the canvas edge: a full-height column
+ * (left/right) or full-width row (top/bottom), inserted at the root level.
+ */
+export function moveCellToCanvasEdge(
+  root: LayoutNode,
+  sourceId: string,
+  side: DropSide
+): LayoutNode {
+  const src = findNode(root, sourceId);
+  if (!src || src.node.type !== "leaf" || !src.parent) return root;
+  const movedPhoto = src.node.photo;
+  const rem = removeLeaf(root, sourceId); // already a fresh clone
+  const axis: Axis = side === "left" || side === "right" ? "x" : "y";
+  const before = side === "left" || side === "top";
+  const fresh: LeafNode = { type: "leaf", id: uid("leaf"), photo: movedPhoto };
+
+  // If the root already runs along this axis, add another full-span child.
+  if (rem.type === "split" && rem.axis === axis) {
+    const share = 1 / (rem.children.length + 1);
+    const scaled = rem.sizes.map((s) => s * (1 - share));
+    if (before) {
+      rem.children.unshift(fresh);
+      scaled.unshift(share);
+    } else {
+      rem.children.push(fresh);
+      scaled.push(share);
+    }
+    rem.sizes = scaled;
+    return rem;
+  }
+
+  // Otherwise wrap the whole layout in a new root split.
+  const share = rem.type === "leaf" ? 0.5 : 1 / 3;
+  return {
+    type: "split",
+    id: uid("split"),
+    axis,
+    children: before ? [fresh, rem] : [rem, fresh],
+    sizes: before ? [share, 1 - share] : [1 - share, share],
+  };
+}
+
 /** All leaf ids in visual (depth-first) order. */
 export function listLeafIds(root: LayoutNode): string[] {
   const out: string[] = [];

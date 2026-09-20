@@ -9,6 +9,7 @@ import {
   initialTree,
   listLeafIds,
   moveCell,
+  moveCellToCanvasEdge,
   removeLeaf,
   setPhoto,
   splitLeaf,
@@ -215,6 +216,11 @@ export default function Page() {
       commitAnd(moveCell(tree, sourceId, targetId, side)),
     [tree, commitAnd]
   );
+  const doMoveToCanvasEdge = useCallback(
+    (sourceId: string, side: DropSide) =>
+      commitAnd(moveCellToCanvasEdge(tree, sourceId, side)),
+    [tree, commitAnd]
+  );
   const doSwap = useCallback(
     (aId: string, bId: string) => commitAnd(swapPhotos(tree, aId, bId)),
     [tree, commitAnd]
@@ -298,6 +304,7 @@ export default function Page() {
         onRemove={doRemove}
         onRequestPhoto={requestPhoto}
         onMoveCell={doMoveCell}
+        onMoveToCanvasEdge={doMoveToCanvasEdge}
         onSwap={doSwap}
         onDropFiles={onDropFiles}
       />
