@@ -165,8 +165,8 @@ export default function Toolbar(props: Props) {
           resize the whole row/column proportionally.
         </p>
         <p>
-          <Kbd>Shift</Kbd> + drag a photo onto another cell&rsquo;s edge to move
-          the cell there.
+          <Kbd>Shift</Kbd> + drag a photo onto a cell: its <b>edge</b> moves the
+          cell there, its <b>center</b> swaps the two.
         </p>
         <p>Drag divider near an edge to snap. Drop image files onto a cell.</p>
         <p>

@@ -240,6 +240,10 @@ body {
   color: var(--muted);
   margin: 0;
 }
+.pgm-hint b {
+  color: var(--text);
+  font-weight: 600;
+}
 .pgm-kbd {
   display: inline-flex;
   align-items: center;

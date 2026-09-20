@@ -26,6 +26,7 @@ interface Props {
   onRemove: (leafId: string) => void;
   onRequestPhoto: (leafId: string) => void;
   onMoveCell: (sourceId: string, targetId: string, side: DropSide) => void;
+  onSwap: (aId: string, bId: string) => void;
   onDropFiles: (leafId: string | null, files: FileList) => void;
 }
 
@@ -50,6 +51,7 @@ export default function GridStage({
   onRemove,
   onRequestPhoto,
   onMoveCell,
+  onSwap,
   onDropFiles,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -60,9 +62,10 @@ export default function GridStage({
   );
   const drag = useRef<DragState | null>(null);
 
-  // Cell move (shift-drag on a photo): lift the cell out and drop it against
-  // an edge of another cell.
-  type MoveTarget = { id: string; side: DropSide };
+  // Cell move (shift-drag on a photo): drop against an edge to insert/move,
+  // or in the center to swap the two cells.
+  type DropMode = DropSide | "swap";
+  type MoveTarget = { id: string; mode: DropMode };
   const [moveSourceId, setMoveSourceId] = useState<string | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
   const moveTargetRef = useRef<MoveTarget | null>(null);
@@ -167,18 +170,24 @@ export default function GridStage({
       setMoveTarget(null);
       return;
     }
-    // Pick the nearest edge: whichever axis the cursor sits further out on.
+    // Center dead-zone -> swap; otherwise the nearest edge -> move/insert.
     const rx = (p.x - hit.x) / hit.w - 0.5;
     const ry = (p.y - hit.y) / hit.h - 0.5;
-    const side: DropSide =
-      Math.abs(rx) > Math.abs(ry)
-        ? rx > 0
-          ? "right"
-          : "left"
-        : ry > 0
-        ? "bottom"
-        : "top";
-    const next = { id: hit.id, side };
+    const CENTER = 0.22;
+    let mode: DropMode;
+    if (Math.abs(rx) < CENTER && Math.abs(ry) < CENTER) {
+      mode = "swap";
+    } else {
+      mode =
+        Math.abs(rx) > Math.abs(ry)
+          ? rx > 0
+            ? "right"
+            : "left"
+          : ry > 0
+          ? "bottom"
+          : "top";
+    }
+    const next = { id: hit.id, mode };
     moveTargetRef.current = next;
     setMoveTarget(next);
   }
@@ -186,7 +195,10 @@ export default function GridStage({
   function endMove() {
     const src = moveSourceRef.current;
     const tgt = moveTargetRef.current;
-    if (src && tgt && src !== tgt.id) onMoveCell(src, tgt.id, tgt.side);
+    if (src && tgt && src !== tgt.id) {
+      if (tgt.mode === "swap") onSwap(src, tgt.id);
+      else onMoveCell(src, tgt.id, tgt.mode);
+    }
     moveSourceRef.current = null;
     moveTargetRef.current = null;
     setMoveSourceId(null);
@@ -299,7 +311,49 @@ export default function GridStage({
                 const c = geo.cells.find((x) => x.id === moveTarget.id);
                 if (!c) return null;
                 const t = Math.max(6, 10 / (displayScale || 1));
-                const s = moveTarget.side;
+
+                if (moveTarget.mode === "swap") {
+                  const badge = Math.max(28, 44 / (displayScale || 1));
+                  return (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: c.x,
+                        top: c.y,
+                        width: c.w,
+                        height: c.h,
+                        border: `${t / 2}px solid #22d3ee`,
+                        borderRadius: style.radius,
+                        boxShadow: "inset 0 0 0 9999px rgba(34,211,238,0.16)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        pointerEvents: "none",
+                        zIndex: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: badge,
+                          height: badge,
+                          borderRadius: badge / 2,
+                          background: "#22d3ee",
+                          color: "#04141a",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: badge * 0.55,
+                          fontWeight: 700,
+                          boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                        }}
+                      >
+                        ⇄
+                      </div>
+                    </div>
+                  );
+                }
+
+                const s = moveTarget.mode;
                 const pos: React.CSSProperties =
                   s === "left"
                     ? { left: c.x - t / 2, top: c.y, width: t, height: c.h }

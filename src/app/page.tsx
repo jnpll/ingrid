@@ -12,6 +12,7 @@ import {
   removeLeaf,
   setPhoto,
   splitLeaf,
+  swapPhotos,
   updatePhoto,
 } from "@/lib/layout";
 import type { DropSide } from "@/lib/layout";
@@ -214,6 +215,10 @@ export default function Page() {
       commitAnd(moveCell(tree, sourceId, targetId, side)),
     [tree, commitAnd]
   );
+  const doSwap = useCallback(
+    (aId: string, bId: string) => commitAnd(swapPhotos(tree, aId, bId)),
+    [tree, commitAnd]
+  );
 
   const resetLayout = useCallback(() => {
     commitAnd(initialTree());
@@ -293,6 +298,7 @@ export default function Page() {
         onRemove={doRemove}
         onRequestPhoto={requestPhoto}
         onMoveCell={doMoveCell}
+        onSwap={doSwap}
         onDropFiles={onDropFiles}
       />
 
