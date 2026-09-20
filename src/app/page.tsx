@@ -8,6 +8,8 @@ import {
   emptyLeafIds,
   initialTree,
   listLeafIds,
+  equalizeParent,
+  equalizeSplit,
   moveCell,
   moveCellToCanvasEdge,
   removeLeaf,
@@ -225,6 +227,18 @@ export default function Page() {
     (aId: string, bId: string) => commitAnd(swapPhotos(tree, aId, bId)),
     [tree, commitAnd]
   );
+  const doEqualizeCell = useCallback(
+    (leafId: string) => commitAnd(equalizeParent(tree, leafId)),
+    [tree, commitAnd]
+  );
+  const doEqualizeSplits = useCallback(
+    (splitIds: string[]) => {
+      let t = tree;
+      for (const id of splitIds) t = equalizeSplit(t, id);
+      commitAnd(t);
+    },
+    [tree, commitAnd]
+  );
 
   const resetLayout = useCallback(() => {
     commitAnd(initialTree());
@@ -307,6 +321,8 @@ export default function Page() {
         onMoveToCanvasEdge={doMoveToCanvasEdge}
         onSwap={doSwap}
         onDropFiles={onDropFiles}
+        onEqualizeSplits={doEqualizeSplits}
+        onEqualizeCell={doEqualizeCell}
       />
 
       <input

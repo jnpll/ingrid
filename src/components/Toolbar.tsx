@@ -161,8 +161,9 @@ export default function Toolbar(props: Props) {
       </button>
       <div className="pgm-hint">
         <p>
-          Drag a divider to resize. Hold <Kbd>Shift</Kbd> while dragging to
-          resize the whole row/column proportionally.
+          Drag a divider to resize the whole row/column. Hold <Kbd>Shift</Kbd>{" "}
+          to shrink the far side proportionally. Double-click a divider to
+          distribute evenly.
         </p>
         <p>
           <Kbd>Shift</Kbd> + drag a cell onto another: its <b>edge</b> moves the

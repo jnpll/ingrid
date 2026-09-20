@@ -21,6 +21,7 @@ interface Props {
   onRequestPhoto: () => void;
   onStartMove: () => void;
   onDropFiles: (files: FileList) => void;
+  onEqualize: () => void;
 }
 
 export default function CellView({
@@ -39,6 +40,7 @@ export default function CellView({
   onRequestPhoto,
   onStartMove,
   onDropFiles,
+  onEqualize,
 }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const panState = useRef<{
@@ -226,6 +228,14 @@ export default function CellView({
           </CtrlButton>
           <CtrlButton size={btn} font={fontBtn} title="Split horizontally" onClick={() => onSplit("h")}>
             ⇕
+          </CtrlButton>
+          <CtrlButton
+            size={btn}
+            font={fontBtn}
+            title="Distribute row/column evenly"
+            onClick={onEqualize}
+          >
+            ☰
           </CtrlButton>
           {asset && (
             <CtrlButton size={btn} font={fontBtn} title="Replace photo" onClick={onRequestPhoto}>

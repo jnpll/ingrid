@@ -423,6 +423,7 @@ export function resizeDivider(
   const next = clone(root);
   const split = findSplit(next, splitId);
   if (!split) return root;
+  if (index < 0 || index >= split.children.length - 1) return root;
 
   const n = split.children.length;
   const lens = split.sizes.map((s) => s * L);
@@ -466,6 +467,59 @@ export function resizeDivider(
   normalize(split.sizes);
 
   return collapse(next);
+}
+
+/**
+ * Resize the whole aligned rail: dragging one divider moves every parallel
+ * divider that shares its line, so a column/row resizes as one. Falls back to
+ * a single divider when nothing is aligned.
+ */
+export function resizeRail(
+  root: LayoutNode,
+  canvas: Canvas,
+  style: GridStyle,
+  splitId: string,
+  index: number,
+  targetPos: number,
+  opts: ResizeOptions
+): LayoutNode {
+  const geo = computeGeometry(root, canvas, style);
+  const dragged = geo.dividers.find(
+    (d) => d.splitId === splitId && d.index === index
+  );
+  if (!dragged) return root;
+  const tol = 1.5;
+  const rail = geo.dividers.filter(
+    (d) =>
+      d.axis === dragged.axis && Math.abs(d.linePos - dragged.linePos) <= tol
+  );
+  let next = root;
+  for (const d of rail) {
+    next = resizeDivider(next, canvas, style, d.splitId, d.index, targetPos, opts);
+  }
+  return next;
+}
+
+/** Make all children of the split containing `leafId` equal in size. */
+export function equalizeParent(root: LayoutNode, leafId: string): LayoutNode {
+  const next = clone(root);
+  const found = findNode(next, leafId);
+  if (found && found.parent) {
+    const n = found.parent.children.length;
+    found.parent.sizes = found.parent.children.map(() => 1 / n);
+  }
+  return next;
+}
+
+/** Make all children of a split equal in size (used on divider double-click). */
+export function equalizeSplit(root: LayoutNode, splitId: string): LayoutNode {
+  const next = clone(root);
+  const split = findSplit(next, splitId);
+  if (split) {
+    const n = split.children.length;
+    split.sizes = split.children.map(() => 1 / n);
+  }
+  return next;
 }
 
 function range(a: number, b: number): number[] {

@@ -5,7 +5,7 @@ import type { GridStyle, ImageStore, LayoutNode, Photo } from "@/lib/types";
 import {
   applySnap,
   computeGeometry,
-  resizeDivider,
+  resizeRail,
   snapCandidates,
   type Canvas,
   type DropSide,
@@ -29,6 +29,8 @@ interface Props {
   onMoveToCanvasEdge: (sourceId: string, side: DropSide) => void;
   onSwap: (aId: string, bId: string) => void;
   onDropFiles: (leafId: string | null, files: FileList) => void;
+  onEqualizeSplits: (splitIds: string[]) => void;
+  onEqualizeCell: (leafId: string) => void;
 }
 
 interface DragState {
@@ -55,6 +57,8 @@ export default function GridStage({
   onMoveToCanvasEdge,
   onSwap,
   onDropFiles,
+  onEqualizeSplits,
+  onEqualizeCell,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -136,15 +140,10 @@ export default function GridStage({
     const threshold = 8 / (displayScale || 1);
     const { pos, snapped } = applySnap(raw, d.candidates, threshold);
     setSnapLine(snapped === null ? null : { axis: d.axis, pos: snapped });
-    const next = resizeDivider(
-      root,
-      canvas,
-      style,
-      d.splitId,
-      d.index,
-      pos,
-      { shift: e.shiftKey, minPx: 28 }
-    );
+    const next = resizeRail(root, canvas, style, d.splitId, d.index, pos, {
+      shift: e.shiftKey,
+      minPx: 28,
+    });
     onTreeChange(next);
   }
 
@@ -310,6 +309,7 @@ export default function GridStage({
                 onRequestPhoto={() => onRequestPhoto(cell.id)}
                 onStartMove={() => startMove(cell.id)}
                 onDropFiles={(files) => onDropFiles(cell.id, files)}
+                onEqualize={() => onEqualizeCell(cell.id)}
               />
             ))}
 
@@ -319,6 +319,18 @@ export default function GridStage({
                 onPointerDown={(e) =>
                   startDivider(e, d.splitId, d.index, d.axis)
                 }
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  const ids = geo.dividers
+                    .filter(
+                      (x) =>
+                        x.axis === d.axis &&
+                        Math.abs(x.linePos - d.linePos) <= 1.5
+                    )
+                    .map((x) => x.splitId);
+                  onEqualizeSplits([...new Set(ids)]);
+                }}
+                title="Double-click to distribute evenly"
                 style={{
                   position: "absolute",
                   left: d.x,
