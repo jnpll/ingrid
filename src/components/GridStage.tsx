@@ -24,6 +24,8 @@ interface Props {
   onSplit: (leafId: string, dir: "v" | "h") => void;
   onRemove: (leafId: string) => void;
   onRequestPhoto: (leafId: string) => void;
+  onSwap: (aId: string, bId: string) => void;
+  onDropFiles: (leafId: string | null, files: FileList) => void;
 }
 
 interface DragState {
@@ -46,6 +48,8 @@ export default function GridStage({
   onSplit,
   onRemove,
   onRequestPhoto,
+  onSwap,
+  onDropFiles,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -54,6 +58,15 @@ export default function GridStage({
     null
   );
   const drag = useRef<DragState | null>(null);
+
+  // Cell move/swap (shift-drag on a photo).
+  const [moveSourceId, setMoveSourceId] = useState<string | null>(null);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const moveTargetRef = useRef<string | null>(null);
+  const moveSourceRef = useRef<string | null>(null);
+  const cellsRef = useRef<
+    { id: string; x: number; y: number; w: number; h: number }[]
+  >([]);
 
   useLayoutEffect(() => {
     const el = wrapRef.current;
@@ -76,6 +89,7 @@ export default function GridStage({
     () => computeGeometry(root, canvas, style),
     [root, canvas, style]
   );
+  cellsRef.current = geo.cells;
 
   function stagePoint(e: PointerEvent | React.PointerEvent) {
     const rect = stageRef.current!.getBoundingClientRect();
@@ -131,10 +145,43 @@ export default function GridStage({
     window.removeEventListener("pointerup", endDivider);
   }
 
+  function startMove(leafId: string) {
+    moveSourceRef.current = leafId;
+    moveTargetRef.current = null;
+    setMoveSourceId(leafId);
+    setMoveTargetId(null);
+    window.addEventListener("pointermove", onMoveMove);
+    window.addEventListener("pointerup", endMove);
+  }
+
+  function onMoveMove(e: PointerEvent) {
+    const p = stagePoint(e);
+    const hit = cellsRef.current.find(
+      (c) => p.x >= c.x && p.x <= c.x + c.w && p.y >= c.y && p.y <= c.y + c.h
+    );
+    const id = hit && hit.id !== moveSourceRef.current ? hit.id : null;
+    moveTargetRef.current = id;
+    setMoveTargetId(id);
+  }
+
+  function endMove() {
+    const src = moveSourceRef.current;
+    const tgt = moveTargetRef.current;
+    if (src && tgt && src !== tgt) onSwap(src, tgt);
+    moveSourceRef.current = null;
+    moveTargetRef.current = null;
+    setMoveSourceId(null);
+    setMoveTargetId(null);
+    window.removeEventListener("pointermove", onMoveMove);
+    window.removeEventListener("pointerup", endMove);
+  }
+
   useEffect(() => {
     return () => {
       window.removeEventListener("pointermove", onDividerMove);
       window.removeEventListener("pointerup", endDivider);
+      window.removeEventListener("pointermove", onMoveMove);
+      window.removeEventListener("pointerup", endMove);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -178,6 +225,15 @@ export default function GridStage({
               overflow: "hidden",
             }}
             onPointerDown={(e) => e.stopPropagation()}
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+            }}
+            onDrop={(e) => {
+              if (e.dataTransfer.files?.length) {
+                e.preventDefault();
+                onDropFiles(null, e.dataTransfer.files);
+              }
+            }}
           >
             {geo.cells.map((cell) => (
               <CellView
@@ -188,11 +244,15 @@ export default function GridStage({
                 radius={style.radius}
                 displayScale={displayScale}
                 selected={selectedId === cell.id}
+                isMoveSource={moveSourceId === cell.id}
+                isMoveTarget={moveTargetId === cell.id}
                 onSelect={() => onSelect(cell.id)}
                 onUpdatePhoto={(patch) => onUpdatePhoto(cell.id, patch)}
                 onSplit={(dir) => onSplit(cell.id, dir)}
                 onRemove={() => onRemove(cell.id)}
                 onRequestPhoto={() => onRequestPhoto(cell.id)}
+                onStartMove={() => startMove(cell.id)}
+                onDropFiles={(files) => onDropFiles(cell.id, files)}
               />
             ))}
 

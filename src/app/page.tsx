@@ -11,6 +11,7 @@ import {
   removeLeaf,
   setPhoto,
   splitLeaf,
+  swapPhotos,
   updatePhoto,
 } from "@/lib/layout";
 import { CANVAS_PRESETS, DEFAULT_PRESET } from "@/lib/presets";
@@ -101,7 +102,10 @@ export default function Page() {
 
   const newPhoto = (imageId: string): Photo => ({ imageId, zoom: 1, panX: 0, panY: 0 });
 
-  async function onFilesChosen(files: FileList | null) {
+  async function ingestFiles(
+    files: FileList | null,
+    firstTarget: string | null
+  ) {
     if (!files || files.length === 0) return;
     const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (list.length === 0) return;
@@ -111,11 +115,6 @@ export default function Page() {
       for (const a of assets) next[a.id] = a;
       return next;
     });
-
-    const target = pending.current;
-    pending.current = null;
-
-    const firstTarget = target && target !== "bulk" ? target : null;
 
     // Fresh canvas (nothing placed yet) + several photos + no specific target:
     // lay them out as a balanced grid.
@@ -161,8 +160,20 @@ export default function Page() {
       idx += 1;
     }
     commitAnd(nextTree);
+  }
+
+  async function onFilesChosen(files: FileList | null) {
+    const target = pending.current;
+    pending.current = null;
+    const firstTarget = target && target !== "bulk" ? target : null;
+    await ingestFiles(files, firstTarget);
     if (fileRef.current) fileRef.current.value = "";
   }
+
+  const onDropFiles = useCallback((leafId: string | null, files: FileList) => {
+    void ingestFiles(files, leafId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree]);
 
   const requestPhoto = useCallback((leafId: string) => {
     pending.current = leafId;
@@ -197,11 +208,17 @@ export default function Page() {
       setTree((t) => updatePhoto(t, leafId, patch)),
     []
   );
+  const doSwap = useCallback(
+    (aId: string, bId: string) => commitAnd(swapPhotos(tree, aId, bId)),
+    [tree, commitAnd]
+  );
 
   const resetLayout = useCallback(() => {
     commitAnd(initialTree());
     setSelectedId(null);
   }, [commitAnd]);
+
+  const resetStyle = useCallback(() => setStyle(DEFAULT_STYLE), []);
 
   // ---- export ----
   const doExport = useCallback(async () => {
@@ -249,6 +266,7 @@ export default function Page() {
         }}
         style={style}
         onStyle={(patch) => setStyle((s) => ({ ...s, ...patch }))}
+        onResetStyle={resetStyle}
         canUndo={past.length > 0}
         canRedo={future.length > 0}
         onUndo={undo}
@@ -272,6 +290,8 @@ export default function Page() {
         onSplit={doSplit}
         onRemove={doRemove}
         onRequestPhoto={requestPhoto}
+        onSwap={doSwap}
+        onDropFiles={onDropFiles}
       />
 
       <input

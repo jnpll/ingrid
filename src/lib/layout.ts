@@ -281,6 +281,24 @@ export function updatePhoto(
   return next;
 }
 
+/** Swap the photos held by two leaves (moves content between cells). */
+export function swapPhotos(
+  root: LayoutNode,
+  aId: string,
+  bId: string
+): LayoutNode {
+  if (aId === bId) return root;
+  const next = clone(root);
+  const a = findNode(next, aId);
+  const b = findNode(next, bId);
+  if (a && a.node.type === "leaf" && b && b.node.type === "leaf") {
+    const tmp = a.node.photo;
+    a.node.photo = b.node.photo;
+    b.node.photo = tmp;
+  }
+  return next;
+}
+
 /** All leaf ids in visual (depth-first) order. */
 export function listLeafIds(root: LayoutNode): string[] {
   const out: string[] = [];

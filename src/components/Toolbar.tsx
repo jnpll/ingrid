@@ -2,6 +2,7 @@
 
 import type { CanvasPreset, GridStyle } from "@/lib/types";
 import { CANVAS_PRESETS } from "@/lib/presets";
+import Kbd from "./Kbd";
 
 interface Props {
   presetId: string;
@@ -11,6 +12,7 @@ interface Props {
   onCustom: (w: number, h: number) => void;
   style: GridStyle;
   onStyle: (patch: Partial<GridStyle>) => void;
+  onResetStyle: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -32,6 +34,7 @@ export default function Toolbar(props: Props) {
     onCustom,
     style,
     onStyle,
+    onResetStyle,
     canUndo,
     canRedo,
     onUndo,
@@ -98,7 +101,14 @@ export default function Toolbar(props: Props) {
         )}
       </Section>
 
-      <Section title="Style">
+      <Section
+        title="Style"
+        action={
+          <button type="button" className="pgm-linkbtn" onClick={onResetStyle}>
+            Reset
+          </button>
+        }
+      >
         <Slider
           label="Gap"
           value={style.gap}
@@ -149,18 +159,41 @@ export default function Toolbar(props: Props) {
       <button className="pgm-export" onClick={onExport} disabled={exporting}>
         {exporting ? "Rendering…" : "⬇ Export PNG"}
       </button>
-      <p className="pgm-hint">
-        Drag dividers to resize · <b>Shift-drag</b> to resize the whole row/column
-        proportionally · drag near an edge to snap.
-      </p>
+      <div className="pgm-hint">
+        <p>
+          Drag a divider to resize. Hold <Kbd>Shift</Kbd> while dragging to
+          resize the whole row/column proportionally.
+        </p>
+        <p>
+          <Kbd>Shift</Kbd> + drag a photo to move it into another cell.
+        </p>
+        <p>Drag divider near an edge to snap. Drop image files onto a cell.</p>
+        <p>
+          <Kbd>⌘</Kbd>
+          <Kbd>Z</Kbd> undo · <Kbd>⌘</Kbd>
+          <Kbd>⇧</Kbd>
+          <Kbd>Z</Kbd> redo · <Kbd>Del</Kbd> remove cell
+        </p>
+      </div>
     </aside>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="pgm-section">
-      <div className="pgm-section-title">{title}</div>
+      <div className="pgm-section-head">
+        <div className="pgm-section-title">{title}</div>
+        {action}
+      </div>
       {children}
     </div>
   );

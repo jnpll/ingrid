@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useState, useRef } from "react";
 import type { CellRect } from "@/lib/types";
 import type { ImageAsset, Photo } from "@/lib/types";
 import { coverBox, clamp } from "@/lib/photo";
@@ -12,11 +12,15 @@ interface Props {
   radius: number;
   displayScale: number;
   selected: boolean;
+  isMoveSource: boolean;
+  isMoveTarget: boolean;
   onSelect: () => void;
   onUpdatePhoto: (patch: Partial<Photo>) => void;
   onSplit: (dir: "v" | "h") => void;
   onRemove: () => void;
   onRequestPhoto: () => void;
+  onStartMove: () => void;
+  onDropFiles: (files: FileList) => void;
 }
 
 export default function CellView({
@@ -26,12 +30,17 @@ export default function CellView({
   radius,
   displayScale,
   selected,
+  isMoveSource,
+  isMoveTarget,
   onSelect,
   onUpdatePhoto,
   onSplit,
   onRemove,
   onRequestPhoto,
+  onStartMove,
+  onDropFiles,
 }: Props) {
+  const [dragOver, setDragOver] = useState(false);
   const panState = useRef<{
     x: number;
     y: number;
@@ -48,8 +57,14 @@ export default function CellView({
 
   function onPointerDown(e: React.PointerEvent) {
     onSelect();
-    if (!asset || !photo || !box) return;
     if (e.button !== 0) return;
+    // Shift-drag on a photo picks the cell up to move/swap it with another.
+    if (e.shiftKey && asset && photo) {
+      e.stopPropagation();
+      onStartMove();
+      return;
+    }
+    if (!asset || !photo || !box) return;
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
     panState.current = {
@@ -95,6 +110,9 @@ export default function CellView({
   const pad = Math.round(6 / displayScale);
   const fontBtn = Math.round(14 / displayScale);
 
+  const highlight = isMoveTarget || dragOver;
+  const outlineColor = highlight ? "#22d3ee" : selected ? "#6366f1" : null;
+
   return (
     <div
       className={`pgm-cell${selected ? " selected" : ""}`}
@@ -107,10 +125,11 @@ export default function CellView({
         borderRadius: radius,
         overflow: "hidden",
         background: asset ? "transparent" : "rgba(255,255,255,0.03)",
-        outline: selected
-          ? `${Math.max(1, 2 / displayScale)}px solid #6366f1`
+        outline: outlineColor
+          ? `${Math.max(1, (highlight ? 3 : 2) / displayScale)}px solid ${outlineColor}`
           : "none",
         outlineOffset: -2,
+        opacity: isMoveSource ? 0.35 : 1,
         cursor: asset ? "grab" : "pointer",
         touchAction: "none",
       }}
@@ -119,6 +138,22 @@ export default function CellView({
       onPointerUp={endPan}
       onPointerCancel={endPan}
       onWheel={onWheel}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          if (!dragOver) setDragOver(true);
+        }
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        if (e.dataTransfer.files?.length) {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragOver(false);
+          onDropFiles(e.dataTransfer.files);
+        }
+      }}
     >
       {box && asset ? (
         <img
