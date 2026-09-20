@@ -1,26 +1,233 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0a0c10;
+  --panel: #12151c;
+  --panel-2: #1a1e27;
+  --border: #262b36;
+  --text: #e7eaf0;
+  --muted: #8b93a3;
+  --accent: #6366f1;
+  --accent-2: #22d3ee;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.pgm-app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ---- Toolbar ---- */
+.pgm-toolbar {
+  width: 288px;
+  flex: 0 0 288px;
+  height: 100%;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.pgm-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+}
+.pgm-logo {
+  color: var(--accent-2);
+  font-size: 18px;
+}
+
+.pgm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.pgm-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pgm-row {
+  display: flex;
+  gap: 8px;
+}
+.pgm-spacer {
+  flex: 1;
+}
+
+.pgm-select {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.pgm-select:focus {
+  border-color: var(--accent);
+}
+
+.pgm-num {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.pgm-num input {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 13px;
+  outline: none;
+}
+.pgm-num input:focus {
+  border-color: var(--accent);
+}
+
+.pgm-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.pgm-slider span {
+  display: flex;
+  justify-content: space-between;
+}
+.pgm-slider b {
+  color: var(--text);
+  font-weight: 600;
+}
+.pgm-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.pgm-color {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+}
+.pgm-color input[type="color"] {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.pgm-btn,
+.pgm-primary,
+.pgm-export {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+}
+.pgm-btn {
+  flex: 1;
+}
+.pgm-btn:hover:not(:disabled),
+.pgm-primary:hover,
+.pgm-export:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.pgm-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.pgm-wide {
+  width: 100%;
+}
+
+.pgm-primary {
+  background: linear-gradient(180deg, var(--accent), #4f46e5);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  padding: 11px 12px;
+}
+
+.pgm-export {
+  background: linear-gradient(180deg, #0ea5b7, #0891a3);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 650;
+  padding: 12px;
+}
+.pgm-export:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pgm-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0;
+}
+.pgm-hint b {
+  color: var(--text);
+}
+
+/* ---- Cell controls (show on hover or when selected) ---- */
+.pgm-controls {
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.pgm-cell:hover .pgm-controls,
+.pgm-cell.selected .pgm-controls {
+  opacity: 1;
+}
+.pgm-cell:hover {
+  outline: 1px solid rgba(99, 102, 241, 0.5);
+  outline-offset: -2px;
 }
