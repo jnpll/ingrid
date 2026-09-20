@@ -8,6 +8,7 @@ import {
   resizeDivider,
   snapCandidates,
   type Canvas,
+  type DropSide,
 } from "@/lib/layout";
 import CellView from "./CellView";
 
@@ -24,7 +25,7 @@ interface Props {
   onSplit: (leafId: string, dir: "v" | "h") => void;
   onRemove: (leafId: string) => void;
   onRequestPhoto: (leafId: string) => void;
-  onSwap: (aId: string, bId: string) => void;
+  onMoveCell: (sourceId: string, targetId: string, side: DropSide) => void;
   onDropFiles: (leafId: string | null, files: FileList) => void;
 }
 
@@ -48,7 +49,7 @@ export default function GridStage({
   onSplit,
   onRemove,
   onRequestPhoto,
-  onSwap,
+  onMoveCell,
   onDropFiles,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -59,10 +60,12 @@ export default function GridStage({
   );
   const drag = useRef<DragState | null>(null);
 
-  // Cell move/swap (shift-drag on a photo).
+  // Cell move (shift-drag on a photo): lift the cell out and drop it against
+  // an edge of another cell.
+  type MoveTarget = { id: string; side: DropSide };
   const [moveSourceId, setMoveSourceId] = useState<string | null>(null);
-  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
-  const moveTargetRef = useRef<string | null>(null);
+  const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
+  const moveTargetRef = useRef<MoveTarget | null>(null);
   const moveSourceRef = useRef<string | null>(null);
   const cellsRef = useRef<
     { id: string; x: number; y: number; w: number; h: number }[]
@@ -149,7 +152,7 @@ export default function GridStage({
     moveSourceRef.current = leafId;
     moveTargetRef.current = null;
     setMoveSourceId(leafId);
-    setMoveTargetId(null);
+    setMoveTarget(null);
     window.addEventListener("pointermove", onMoveMove);
     window.addEventListener("pointerup", endMove);
   }
@@ -159,19 +162,35 @@ export default function GridStage({
     const hit = cellsRef.current.find(
       (c) => p.x >= c.x && p.x <= c.x + c.w && p.y >= c.y && p.y <= c.y + c.h
     );
-    const id = hit && hit.id !== moveSourceRef.current ? hit.id : null;
-    moveTargetRef.current = id;
-    setMoveTargetId(id);
+    if (!hit || hit.id === moveSourceRef.current) {
+      moveTargetRef.current = null;
+      setMoveTarget(null);
+      return;
+    }
+    // Pick the nearest edge: whichever axis the cursor sits further out on.
+    const rx = (p.x - hit.x) / hit.w - 0.5;
+    const ry = (p.y - hit.y) / hit.h - 0.5;
+    const side: DropSide =
+      Math.abs(rx) > Math.abs(ry)
+        ? rx > 0
+          ? "right"
+          : "left"
+        : ry > 0
+        ? "bottom"
+        : "top";
+    const next = { id: hit.id, side };
+    moveTargetRef.current = next;
+    setMoveTarget(next);
   }
 
   function endMove() {
     const src = moveSourceRef.current;
     const tgt = moveTargetRef.current;
-    if (src && tgt && src !== tgt) onSwap(src, tgt);
+    if (src && tgt && src !== tgt.id) onMoveCell(src, tgt.id, tgt.side);
     moveSourceRef.current = null;
     moveTargetRef.current = null;
     setMoveSourceId(null);
-    setMoveTargetId(null);
+    setMoveTarget(null);
     window.removeEventListener("pointermove", onMoveMove);
     window.removeEventListener("pointerup", endMove);
   }
@@ -245,7 +264,7 @@ export default function GridStage({
                 displayScale={displayScale}
                 selected={selectedId === cell.id}
                 isMoveSource={moveSourceId === cell.id}
-                isMoveTarget={moveTargetId === cell.id}
+                isMoveTarget={moveTarget?.id === cell.id}
                 onSelect={() => onSelect(cell.id)}
                 onUpdatePhoto={(patch) => onUpdatePhoto(cell.id, patch)}
                 onSplit={(dir) => onSplit(cell.id, dir)}
@@ -274,6 +293,35 @@ export default function GridStage({
                 }}
               />
             ))}
+
+            {moveTarget &&
+              (() => {
+                const c = geo.cells.find((x) => x.id === moveTarget.id);
+                if (!c) return null;
+                const t = Math.max(6, 10 / (displayScale || 1));
+                const s = moveTarget.side;
+                const pos: React.CSSProperties =
+                  s === "left"
+                    ? { left: c.x - t / 2, top: c.y, width: t, height: c.h }
+                    : s === "right"
+                    ? { left: c.x + c.w - t / 2, top: c.y, width: t, height: c.h }
+                    : s === "top"
+                    ? { left: c.x, top: c.y - t / 2, width: c.w, height: t }
+                    : { left: c.x, top: c.y + c.h - t / 2, width: c.w, height: t };
+                return (
+                  <div
+                    style={{
+                      position: "absolute",
+                      background: "#22d3ee",
+                      borderRadius: t / 2,
+                      boxShadow: "0 0 12px rgba(34,211,238,0.7)",
+                      pointerEvents: "none",
+                      zIndex: 12,
+                      ...pos,
+                    }}
+                  />
+                );
+              })()}
 
             {snapLine && (
               <div

@@ -299,6 +299,37 @@ export function swapPhotos(
   return next;
 }
 
+export type DropSide = "left" | "right" | "top" | "bottom";
+
+/**
+ * Physically move `sourceId` next to `targetId` on the given side. The source
+ * cell is lifted out (its old siblings reflow to fill the gap) and re-inserted
+ * against the target, which compresses to make room. Returns a new tree.
+ */
+export function moveCell(
+  root: LayoutNode,
+  sourceId: string,
+  targetId: string,
+  side: DropSide
+): LayoutNode {
+  if (sourceId === targetId) return root;
+  const src = findNode(root, sourceId);
+  if (!src || src.node.type !== "leaf" || !src.parent) return root; // can't lift the root cell
+  const movedPhoto = src.node.photo;
+
+  // 1. Lift the source out; remaining siblings expand to fill its space.
+  let next = removeLeaf(root, sourceId);
+
+  // 2. Split the target on the requested side; the fresh half gets the photo.
+  const dir: "v" | "h" = side === "left" || side === "right" ? "v" : "h";
+  const before = side === "left" || side === "top";
+  const beforeIds = new Set(listLeafIds(next));
+  next = splitLeaf(next, targetId, dir, before);
+  const newId = listLeafIds(next).find((id) => !beforeIds.has(id));
+  if (newId) next = setPhoto(next, newId, movedPhoto);
+  return next;
+}
+
 /** All leaf ids in visual (depth-first) order. */
 export function listLeafIds(root: LayoutNode): string[] {
   const out: string[] = [];

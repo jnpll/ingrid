@@ -8,12 +8,13 @@ import {
   emptyLeafIds,
   initialTree,
   listLeafIds,
+  moveCell,
   removeLeaf,
   setPhoto,
   splitLeaf,
-  swapPhotos,
   updatePhoto,
 } from "@/lib/layout";
+import type { DropSide } from "@/lib/layout";
 import { CANVAS_PRESETS, DEFAULT_PRESET } from "@/lib/presets";
 import { downloadDataUrl, renderToDataUrl } from "@/lib/exportPng";
 import type {
@@ -208,8 +209,9 @@ export default function Page() {
       setTree((t) => updatePhoto(t, leafId, patch)),
     []
   );
-  const doSwap = useCallback(
-    (aId: string, bId: string) => commitAnd(swapPhotos(tree, aId, bId)),
+  const doMoveCell = useCallback(
+    (sourceId: string, targetId: string, side: DropSide) =>
+      commitAnd(moveCell(tree, sourceId, targetId, side)),
     [tree, commitAnd]
   );
 
@@ -290,7 +292,7 @@ export default function Page() {
         onSplit={doSplit}
         onRemove={doRemove}
         onRequestPhoto={requestPhoto}
-        onSwap={doSwap}
+        onMoveCell={doMoveCell}
         onDropFiles={onDropFiles}
       />
 

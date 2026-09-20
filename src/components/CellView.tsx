@@ -110,8 +110,7 @@ export default function CellView({
   const pad = Math.round(6 / displayScale);
   const fontBtn = Math.round(14 / displayScale);
 
-  const highlight = isMoveTarget || dragOver;
-  const outlineColor = highlight ? "#22d3ee" : selected ? "#6366f1" : null;
+  const outlineColor = dragOver ? "#22d3ee" : selected ? "#6366f1" : null;
 
   return (
     <div
@@ -126,7 +125,7 @@ export default function CellView({
         overflow: "hidden",
         background: asset ? "transparent" : "rgba(255,255,255,0.03)",
         outline: outlineColor
-          ? `${Math.max(1, (highlight ? 3 : 2) / displayScale)}px solid ${outlineColor}`
+          ? `${Math.max(1, (dragOver ? 3 : 2) / displayScale)}px solid ${outlineColor}`
           : "none",
         outlineOffset: -2,
         opacity: isMoveSource ? 0.35 : 1,
@@ -195,6 +194,17 @@ export default function CellView({
           <span style={{ fontSize: Math.round(22 / displayScale) }}>+</span>
           Add photo
         </button>
+      )}
+
+      {isMoveTarget && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(34,211,238,0.14)",
+            pointerEvents: "none",
+          }}
+        />
       )}
 
       {/* Hover / selection controls */}
