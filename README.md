@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-GitHub Packages requires npm authentication with `read:packages` before `npm install`. The repository's `.npmrc` routes the `@jnpll` scope to GitHub Packages; keep credentials in your local npm configuration or CI secrets.
+GitHub Packages requires a personal access token (classic) with `read:packages` before `npm install`. The repository's `.npmrc` routes the `@jnpll` scope and reads `NODE_AUTH_TOKEN` for authentication. Set that variable in your local environment or CI, including the Vercel Production build environment, and grant the token access to the Elements UI package.
 
 Open [http://localhost:3000](http://localhost:3000).
 
