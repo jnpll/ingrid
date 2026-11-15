@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GridStage from "@/components/GridStage";
 import Toolbar from "@/components/Toolbar";
+import { Badge } from "@jnpll/elements-ui/badge";
 import {
   buildBalancedGrid,
   emptyLeafIds,
@@ -252,7 +253,7 @@ export default function Page() {
     setExporting(true);
     try {
       const url = await renderToDataUrl(tree, canvas, style, images, 1);
-      downloadDataUrl(url, `photo-grid-${canvas.w}x${canvas.h}.png`);
+      downloadDataUrl(url, `ingrid-${canvas.w}x${canvas.h}.png`);
     } finally {
       setExporting(false);
     }
@@ -304,6 +305,18 @@ export default function Page() {
         exporting={exporting}
       />
 
+      <main className="pgm-workspace" aria-label="Canvas workspace">
+        <div className="pgm-workspace-header">
+          <div>
+            <div className="pgm-workspace-title">Canvas preview</div>
+            <div className="pgm-workspace-subtitle">Arrange, refine, export.</div>
+          </div>
+          <div className="pgm-workspace-meta">
+            <span className="pgm-workspace-size">{canvas.w} × {canvas.h} px</span>
+            <Badge variant="outline">Live</Badge>
+          </div>
+        </div>
+        <div className="pgm-stage-shell">
       <GridStage
         root={tree}
         canvas={canvas}
@@ -324,6 +337,8 @@ export default function Page() {
         onEqualizeSplits={doEqualizeSplits}
         onEqualizeCell={doEqualizeCell}
       />
+        </div>
+      </main>
 
       <input
         ref={fileRef}

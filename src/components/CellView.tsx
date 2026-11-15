@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import type { CellRect } from "@/lib/types";
 import type { ImageAsset, Photo } from "@/lib/types";
 import { coverBox, clamp } from "@/lib/photo";
+import { Button } from "@jnpll/elements-ui/button";
 
 interface Props {
   cell: CellRect;
@@ -112,7 +113,7 @@ export default function CellView({
   const pad = Math.round(6 / displayScale);
   const fontBtn = Math.round(14 / displayScale);
 
-  const outlineColor = dragOver ? "#22d3ee" : selected ? "#6366f1" : null;
+  const outlineColor = dragOver ? "#f5f5f5" : selected ? "#c6c6cb" : null;
 
   return (
     <div
@@ -157,6 +158,8 @@ export default function CellView({
       }}
     >
       {box && asset ? (
+        // Object URLs need exact canvas positioning and dimensions for export parity.
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={asset.src}
           alt=""
@@ -204,7 +207,7 @@ export default function CellView({
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(34,211,238,0.14)",
+            background: "rgba(255,255,255,0.14)",
             pointerEvents: "none",
           }}
         />
@@ -267,8 +270,11 @@ function CtrlButton({
   danger?: boolean;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant={danger ? "destructive" : "secondary"}
+      size="icon"
+      className="pgm-cell-control"
       title={title}
       onClick={(e) => {
         e.stopPropagation();
@@ -281,16 +287,12 @@ function CtrlButton({
         alignItems: "center",
         justifyContent: "center",
         borderRadius: size * 0.25,
-        border: "none",
         fontSize: font,
         lineHeight: 1,
-        color: "#fff",
-        background: danger ? "rgba(239,68,68,0.9)" : "rgba(17,24,39,0.82)",
         backdropFilter: "blur(4px)",
-        cursor: "pointer",
       }}
     >
       {children}
-    </button>
+    </Button>
   );
 }

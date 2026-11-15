@@ -104,7 +104,9 @@ export default function GridStage({
     () => computeGeometry(root, canvas, style),
     [root, canvas, style]
   );
-  cellsRef.current = geo.cells;
+  useLayoutEffect(() => {
+    cellsRef.current = geo.cells;
+  }, [geo.cells]);
 
   function stagePoint(e: PointerEvent | React.PointerEvent) {
     const rect = stageRef.current!.getBoundingClientRect();
@@ -366,8 +368,8 @@ export default function GridStage({
                     <div
                       style={{
                         position: "absolute",
-                        background: "#22d3ee",
-                        boxShadow: "0 0 18px rgba(34,211,238,0.9)",
+                        background: "#f5f5f5",
+                        boxShadow: "0 0 18px rgba(255,255,255,0.7)",
                         pointerEvents: "none",
                         zIndex: 12,
                         ...pos,
@@ -389,9 +391,9 @@ export default function GridStage({
                         top: c.y,
                         width: c.w,
                         height: c.h,
-                        border: `${t / 2}px solid #22d3ee`,
+                        border: `${t / 2}px solid #f5f5f5`,
                         borderRadius: style.radius,
-                        boxShadow: "inset 0 0 0 9999px rgba(34,211,238,0.16)",
+                        boxShadow: "inset 0 0 0 9999px rgba(255,255,255,0.16)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -404,8 +406,8 @@ export default function GridStage({
                           width: badge,
                           height: badge,
                           borderRadius: badge / 2,
-                          background: "#22d3ee",
-                          color: "#04141a",
+                          background: "#f5f5f5",
+                          color: "#171719",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -433,9 +435,9 @@ export default function GridStage({
                   <div
                     style={{
                       position: "absolute",
-                      background: "#22d3ee",
+                          background: "#f5f5f5",
                       borderRadius: t / 2,
-                      boxShadow: "0 0 12px rgba(34,211,238,0.7)",
+                          boxShadow: "0 0 12px rgba(255,255,255,0.7)",
                       pointerEvents: "none",
                       zIndex: 12,
                       ...pos,
@@ -448,7 +450,7 @@ export default function GridStage({
               <div
                 style={{
                   position: "absolute",
-                  background: "#22d3ee",
+                  background: "#f5f5f5",
                   pointerEvents: "none",
                   zIndex: 10,
                   ...(snapLine.axis === "x"
